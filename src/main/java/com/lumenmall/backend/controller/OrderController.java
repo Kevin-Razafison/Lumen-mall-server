@@ -5,6 +5,8 @@ import com.lumenmall.backend.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/orders")
 @CrossOrigin(origins = "http://localhost:5173")
@@ -16,5 +18,10 @@ public class OrderController {
     @PostMapping
     public Order createOrder(@RequestBody Order order) {
         return orderService.placeOrder(order);
+    }
+
+    @GetMapping
+    public List<Order> getAllOrders() {
+        return orderService.getAllOrders();
     }
 }
