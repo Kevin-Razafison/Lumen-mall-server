@@ -22,11 +22,13 @@ public class Product {
     private String name;
     private String description;
     private Double price;
-    private String imageUrl;
     private String category;
+
     @ElementCollection
     @Column(name = "feature")
     @CollectionTable(name = "product_features", joinColumns = @JoinColumn(name = "product_id"))
     private List<String> features;
 
+    @Column(columnDefinition = "TEXT")
+    private String imageUrl;
 }

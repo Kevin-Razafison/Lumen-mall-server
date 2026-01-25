@@ -50,8 +50,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/products/**", "/api/users/register", "/api/users/login").permitAll()
 
                         // ADMIN ONLY: Only users with ROLE_ADMIN can reach these
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/products").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST,"/api/products").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
 
                         // Requires any login
