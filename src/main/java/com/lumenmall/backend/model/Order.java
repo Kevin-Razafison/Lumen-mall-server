@@ -18,7 +18,7 @@ public class Order {
     private Double totalAmount;
     private LocalDateTime orderDate;
     private String status;
-
+    private String paymentMethod;
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "order_id")
     private List<OrderItem> items;
