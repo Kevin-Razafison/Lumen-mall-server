@@ -36,4 +36,28 @@ public class UserController {
         userRepository.save(user);
         return ResponseEntity.ok(Map.of("message", "User registered successfully!"));
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> loginUser(@RequestBody Map<String, String> loginData) {
+        String email = loginData.get("email");
+        String password = loginData.get("password");
+
+        // 1. Find user by email
+        return userRepository.findByEmail(email)
+                .map(user -> {
+                    // 2. Compare plain password with hashed password in DB
+                    if (passwordEncoder.matches(password, user.getPassword())) {
+                        // Success! Return user info (except the password)
+                        return ResponseEntity.ok(Map.of(
+                                "id", user.getId(),
+                                "email", user.getEmail(),
+                                "fullName", user.getFullName(),
+                                "role", user.getRole()
+                        ));
+                    } else {
+                        return ResponseEntity.status(401).body(Map.of("message", "Invalid password"));
+                    }
+                })
+                .orElse(ResponseEntity.status(401).body(Map.of("message", "User not found")));
+    }
 }
