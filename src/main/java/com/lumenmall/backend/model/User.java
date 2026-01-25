@@ -1,5 +1,6 @@
 package com.lumenmall.backend.model;
 
+
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -18,4 +19,7 @@ public class User {
     private String password;
 
     private String fullName;
+
+    @Column(nullable = false)
+    private String role = "ROLE_USER"; // Default role for everyone
 }
