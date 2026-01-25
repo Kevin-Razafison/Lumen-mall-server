@@ -53,6 +53,7 @@ public class ProductController {
             return ResponseEntity.status(500).body(Map.of("error", "Upload failed"));
         }
     }
+
     // Add this to your ProductController.java
     @PostMapping
     public ResponseEntity<Product> createProduct(@RequestBody Product product) {
@@ -64,5 +65,11 @@ public class ProductController {
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product productDetails) {
+        Product updatedProduct = productService.updateProduct(id, productDetails);
+        return ResponseEntity.ok(updatedProduct);
     }
 }

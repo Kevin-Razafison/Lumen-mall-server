@@ -24,6 +24,7 @@ public class ProductService {
         return productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
     }
+
     public Product saveProduct(Product product) {
         return productRepository.save(product);
     }
@@ -33,5 +34,23 @@ public class ProductService {
             throw new RuntimeException("Product not found with id: " + id);
         }
         productRepository.deleteById(id);
+    }
+
+    public Product updateProduct(Long id, Product details) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+
+        // Update the fields
+        product.setName(details.getName());
+        product.setPrice(details.getPrice());
+        product.setDescription(details.getDescription());
+        product.setCategory(details.getCategory());
+
+        // Only update image if a new one was provided
+        if (details.getImageUrl() != null && !details.getImageUrl().isEmpty()) {
+            product.setImageUrl(details.getImageUrl());
+        }
+
+        return productRepository.save(product);
     }
 }
