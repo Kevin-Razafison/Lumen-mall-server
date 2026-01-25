@@ -16,7 +16,13 @@ public class OrderService {
 
     @Transactional
     public Order placeOrder(Order order) {
-        // Here you could add logic to check stock/inventory in the future
+        if ("Bank Transfer".equals(order.getPaymentMethod())) {
+            order.setStatus("AWAITING_PAYMENT");
+        } else if (order.getStatus() == null) {
+            order.setStatus("PAID");
+        }
+
+
         return orderRepository.save(order);
     }
 
@@ -29,13 +35,6 @@ public class OrderService {
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
         order.setStatus(status);
-        return orderRepository.save(order);
-    }
-
-    public Order createOrder(Order order) {
-        if (order.getStatus() == null) {
-            order.setStatus("PENDING");
-        }
         return orderRepository.save(order);
     }
 }
