@@ -31,11 +31,11 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
     }
-    
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // Disabled for development
+                .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(request -> {
                     var config = new CorsConfiguration();
                     config.setAllowedOrigins(List.of("http://localhost:5173"));
@@ -44,10 +44,18 @@ public class SecurityConfig {
                     return config;
                 }))
                 .authorizeHttpRequests(auth -> auth
+                        // Publicly accessible
                         .requestMatchers("/api/products/**", "/api/users/register", "/api/users/login").permitAll()
-                        .anyRequest().authenticated() // Everything else needs login
+
+                        // ADMIN ONLY: Only users with ROLE_ADMIN can reach these
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/products").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
+
+                        // Requires any login
+                        .anyRequest().authenticated()
                 )
-                .httpBasic(basic -> {}); // Allows simple testing
+                .httpBasic(Customizer.withDefaults());
 
         return http.build();
     }
