@@ -67,8 +67,8 @@ public class UserController {
         return userRepository.findByEmail(email)
                 .map(user -> {
                     if (passwordEncoder.matches(password, user.getPassword())) {
-                        // Generate the secure token
-                        String token = jwtUtils.generateToken(user.getEmail());
+                        // Correctly passes two arguments: email and role
+                        String token = jwtUtils.generateToken(user.getEmail(), user.getRole());
 
                         return ResponseEntity.ok(Map.of(
                                 "token", token,
@@ -90,19 +90,19 @@ public class UserController {
 
         String newName = data.get("fullName");
         String newEmail = data.get("email");
-        String newImage = data.get("imageUrl"); // Base64 string
+        String newImage = data.get("imageUrl");
 
         User updatedUser = userService.updateFullProfile(currentEmail, newName, newEmail, newImage);
 
-        // Note: If email changed, the old JWT is technically for the old email.
-        // We return a fresh token if the email changes.
-        String newToken = jwtUtils.generateToken(updatedUser.getEmail());
+        // FIX: Use 'updatedUser' (not 'user') and pass BOTH arguments
+        String newToken = jwtUtils.generateToken(updatedUser.getEmail(), updatedUser.getRole());
 
         return ResponseEntity.ok(Map.of(
                 "token", newToken,
                 "fullName", updatedUser.getFullName(),
                 "email", updatedUser.getEmail(),
-                "imageUrl", updatedUser.getImageUrl() != null ? updatedUser.getImageUrl() : ""
+                "imageUrl", updatedUser.getImageUrl() != null ? updatedUser.getImageUrl() : "",
+                "role", updatedUser.getRole()
         ));
     }
 }

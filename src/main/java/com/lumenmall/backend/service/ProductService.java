@@ -44,11 +44,13 @@ public class ProductService {
         product.setPrice(details.getPrice());
         product.setDescription(details.getDescription());
         product.setCategory(details.getCategory());
+        product.setStock(details.getStock());
+        product.setFeatures(details.getFeatures());
 
         if (details.getImageUrl() != null && !details.getImageUrl().isEmpty()) {
             product.setImageUrl(details.getImageUrl());
         }
-        product.setStock(details.getStock());
+
         return productRepository.save(product);
     }
 }
