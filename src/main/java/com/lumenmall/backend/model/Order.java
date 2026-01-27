@@ -17,7 +17,8 @@ public class Order {
     private String customerEmail;
     private Double totalAmount;
     private LocalDateTime orderDate;
-
+    private String status;
+    private String paymentMethod;
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "order_id")
     private List<OrderItem> items;
@@ -26,4 +27,5 @@ public class Order {
     protected void onCreate() {
         orderDate = LocalDateTime.now();
     }
+    private String providerOrderId;
 }

@@ -2,11 +2,13 @@ package com.lumenmall.backend.controller;
 
 import com.lumenmall.backend.model.User;
 import com.lumenmall.backend.repository.UserRepository;
+import com.lumenmall.backend.service.UserService;
+import com.lumenmall.backend.security.JwtUtils; // Ensure this matches your package
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -20,21 +22,41 @@ public class UserController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private JwtUtils jwtUtils; // Moved inside the class!
+
+    @GetMapping("/all")
+    public ResponseEntity<List<User>> getAllUsers() {
+        return ResponseEntity.ok(userService.findAllUsers());
+    }
+
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
-        // 1. Check if email exists
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Email already in use!"));
         }
-
-        // 2. Hash the password before saving!
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-
-        // 3. Set default role
-        user.setRole("ROLE_USER");
+        user.setRole("USER");
 
         userRepository.save(user);
         return ResponseEntity.ok(Map.of("message", "User registered successfully!"));
+    }
+
+    @PutMapping("/{id}/role")
+    public ResponseEntity<?> updateRole(@PathVariable Long id, @RequestBody String newRole) {
+        try {
+            String cleanedRole = newRole.replace("\"", "");
+            User updatedUser = userService.updateUserRole(id, cleanedRole);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Role updated successfully",
+                    "role", updatedUser.getRole()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PostMapping("/login")
@@ -42,22 +64,45 @@ public class UserController {
         String email = loginData.get("email");
         String password = loginData.get("password");
 
-        // 1. Find user by email
         return userRepository.findByEmail(email)
                 .map(user -> {
-                    // 2. Compare plain password with hashed password in DB
                     if (passwordEncoder.matches(password, user.getPassword())) {
-                        // Success! Return user info (except the password)
+                        // Generate the secure token
+                        String token = jwtUtils.generateToken(user.getEmail());
+
                         return ResponseEntity.ok(Map.of(
+                                "token", token,
                                 "id", user.getId(),
                                 "email", user.getEmail(),
                                 "fullName", user.getFullName(),
                                 "role", user.getRole()
                         ));
                     } else {
-                        return ResponseEntity.status(401).body(Map.of("message", "Invalid password"));
+                        return ResponseEntity.status(401).body(Map.of("message", "Invalid credentials"));
                     }
                 })
-                .orElse(ResponseEntity.status(401).body(Map.of("message", "User not found")));
+                .orElse(ResponseEntity.status(401).body(Map.of("message", "Invalid credentials")));
+    }
+
+    @PutMapping("/profile/update")
+    public ResponseEntity<?> updateProfile(@RequestBody Map<String, String> data, @RequestHeader("Authorization") String auth) {
+        String currentEmail = jwtUtils.extractUsername(auth.substring(7));
+
+        String newName = data.get("fullName");
+        String newEmail = data.get("email");
+        String newImage = data.get("imageUrl"); // Base64 string
+
+        User updatedUser = userService.updateFullProfile(currentEmail, newName, newEmail, newImage);
+
+        // Note: If email changed, the old JWT is technically for the old email.
+        // We return a fresh token if the email changes.
+        String newToken = jwtUtils.generateToken(updatedUser.getEmail());
+
+        return ResponseEntity.ok(Map.of(
+                "token", newToken,
+                "fullName", updatedUser.getFullName(),
+                "email", updatedUser.getEmail(),
+                "imageUrl", updatedUser.getImageUrl() != null ? updatedUser.getImageUrl() : ""
+        ));
     }
 }

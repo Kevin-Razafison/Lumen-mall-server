@@ -1,15 +1,8 @@
 package com.lumenmall.backend.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Data;
-import jakarta.persistence.Column;
 import java.util.List;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.JoinColumn;
 
 @Entity
 @Data
@@ -20,7 +13,10 @@ public class Product {
     private Long id;
 
     private String name;
+
+    @Column(columnDefinition = "TEXT")
     private String description;
+
     private Double price;
     private String category;
 
@@ -29,6 +25,9 @@ public class Product {
     @CollectionTable(name = "product_features", joinColumns = @JoinColumn(name = "product_id"))
     private List<String> features;
 
+
     @Column(columnDefinition = "TEXT")
     private String imageUrl;
+
+    private Integer stock;
 }

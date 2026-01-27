@@ -22,4 +22,8 @@ public class User {
 
     @Column(nullable = false)
     private String role = "ROLE_USER"; // Default role for everyone
+
+    @Column(columnDefinition = "TEXT")
+    private String imageUrl;
+
 }
