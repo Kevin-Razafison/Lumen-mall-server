@@ -40,17 +40,15 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
 
-        // Update the fields
         product.setName(details.getName());
         product.setPrice(details.getPrice());
         product.setDescription(details.getDescription());
         product.setCategory(details.getCategory());
 
-        // Only update image if a new one was provided
         if (details.getImageUrl() != null && !details.getImageUrl().isEmpty()) {
             product.setImageUrl(details.getImageUrl());
         }
-
+        product.setStock(details.getStock());
         return productRepository.save(product);
     }
 }
