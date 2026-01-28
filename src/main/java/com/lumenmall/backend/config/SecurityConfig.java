@@ -84,7 +84,7 @@ public class SecurityConfig {
 
         configuration.setAllowedOrigins(java.util.List.of(
                 "http://localhost:5173",
-                "https://lumen-mall-client.onrender.com" // Update this with your actual Render URL later
+                "https://lumen-mall-client.onrender.com" // Existing
         ));
 
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
