@@ -1,7 +1,9 @@
 package com.lumenmall.backend.service;
 
 import com.lumenmall.backend.model.Review;
+import com.lumenmall.backend.model.Order;
 import com.lumenmall.backend.repository.ReviewRepository;
+import com.lumenmall.backend.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -11,6 +13,9 @@ public class ReviewService {
 
     @Autowired
     private ReviewRepository reviewRepository;
+
+    @Autowired
+    private OrderRepository orderRepository; // Injected to check purchase history
 
     public List<Review> getReviewsByProduct(Long productId) {
         return reviewRepository.findByProductId(productId);
@@ -26,5 +31,22 @@ public class ReviewService {
         } else {
             throw new RuntimeException("Review not found with id: " + id);
         }
+    }
+
+
+    public Long getValidOrderIdForReview(String email, Long productId) {
+        // Find all orders for this customer
+        List<Order> userOrders = orderRepository.findByCustomerEmail(email);
+
+        for (Order order : userOrders) {
+            // Check if any item in the order matches the productId
+            boolean purchased = order.getItems().stream()
+                    .anyMatch(item -> item.getProductId().equals(productId));
+
+            if (purchased) {
+                return order.getId(); // Return the first matching order ID
+            }
+        }
+        return null; // No purchase found
     }
 }
