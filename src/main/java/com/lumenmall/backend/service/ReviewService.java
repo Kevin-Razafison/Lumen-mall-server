@@ -2,7 +2,9 @@ package com.lumenmall.backend.service;
 
 import com.lumenmall.backend.model.Review;
 import com.lumenmall.backend.model.Order;
+import com.lumenmall.backend.model.ReviewHelpfulVote;
 import com.lumenmall.backend.repository.ProductRepository;
+import com.lumenmall.backend.repository.ReviewHelpfulVoteRepository;
 import com.lumenmall.backend.repository.ReviewRepository;
 import com.lumenmall.backend.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,12 +15,19 @@ import java.util.List;
 public class ReviewService {
 
     @Autowired
-    private ReviewRepository reviewRepository; // 2. Inject it here
+    private ReviewRepository reviewRepository;
+
+    @Autowired
+    private ReviewHelpfulVoteRepository voteRepository;
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private ProductRepository productRepository;
 
     public List<Review> getAllReviews() {
         List<Review> reviews = reviewRepository.findAll();
-
-        // Fill in the product name for each review
         for (Review review : reviews) {
             if (review.getProductId() != null) {
                 productRepository.findById(Long.parseLong(review.getProductId()))
@@ -27,12 +36,6 @@ public class ReviewService {
         }
         return reviews;
     }
-
-    @Autowired
-    private OrderRepository orderRepository; // Injected to check purchase history
-
-    @Autowired
-    private ProductRepository productRepository; // You'll need this to get names
 
     public List<Review> getReviewsByProduct(Long productId) {
         return reviewRepository.findByProductId(productId);
@@ -50,20 +53,42 @@ public class ReviewService {
         }
     }
 
+    public Review addReply(Long id, String reply) {
+        Review review = reviewRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Review not found"));
+        review.setAdminReply(reply);
+        return reviewRepository.save(review);
+    }
+
+    // TOGGLE LOGIC: This single method handles both Like and Unlike
+    public Review markHelpful(Long reviewId, String userEmail) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new RuntimeException("Review not found"));
+
+        boolean alreadyVoted = voteRepository.existsByReviewIdAndUserEmail(reviewId, userEmail);
+
+        if (alreadyVoted) {
+            // If they already voted, delete the record and subtract 1
+            voteRepository.deleteByReviewIdAndUserEmail(reviewId, userEmail);
+            review.setHelpfulCount(Math.max(0, review.getHelpfulCount() - 1));
+        } else {
+            // If they haven't voted, create the record and add 1
+            voteRepository.save(new ReviewHelpfulVote(reviewId, userEmail));
+            review.setHelpfulCount(review.getHelpfulCount() + 1);
+        }
+
+        return reviewRepository.save(review);
+    }
 
     public Long getValidOrderIdForReview(String email, Long productId) {
-        // Find all orders for this customer
         List<Order> userOrders = orderRepository.findByCustomerEmail(email);
-
         for (Order order : userOrders) {
-            // Check if any item in the order matches the productId
             boolean purchased = order.getItems().stream()
                     .anyMatch(item -> item.getProductId().equals(productId));
-
             if (purchased) {
-                return order.getId(); // Return the first matching order ID
+                return order.getId();
             }
         }
-        return null; // No purchase found
+        return null;
     }
 }

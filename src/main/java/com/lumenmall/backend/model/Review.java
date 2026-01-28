@@ -31,5 +31,8 @@ public class Review {
         this.createdAt = LocalDateTime.now();
     }
 
+    private String adminReply;
     private String productName;
+
+    private int helpfulCount = 0;
 }
