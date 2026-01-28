@@ -23,8 +23,13 @@ public class OrderService {
 
     @Transactional
     public Order placeOrder(Order order) {
+        // 1. VALIDATE: Look before you leap
+        validateStock(order);
+
+        // 2. ACT: Deduct only after validation passes
         deductStock(order);
 
+        // 3. INITIAL STATUS MAPPING
         if ("Bank Transfer".equals(order.getPaymentMethod())) {
             order.setStatus("AWAITING_PAYMENT");
         } else if ("PayPal".equals(order.getPaymentMethod())) {
@@ -38,6 +43,47 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
+    private void validateStock(Order order) {
+        if (order.getItems() == null) return;
+
+        for (var item : order.getItems()) {
+            Product product = productRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Product not found ID: " + item.getProductId()));
+
+            if (product.getStock() != null && product.getStock() < item.getQuantity()) {
+                throw new RuntimeException("Insufficient stock for: " + product.getName() +
+                        " (Requested: " + item.getQuantity() + ", Available: " + product.getStock() + ")");
+            }
+        }
+    }
+
+    private void deductStock(Order order) {
+        if (order.getItems() == null) return;
+
+        order.getItems().forEach(item -> {
+            Product product = productRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Product not found"));
+
+            // MAP DATA HERE: Transfer name and image from Product to OrderItem
+            item.setProductName(product.getName());
+            item.setImageUrl(product.getImageUrl());
+
+            // Handle stock deduction
+            int updatedStock = product.getStock() - item.getQuantity();
+            product.setStock(updatedStock);
+            productRepository.save(product);
+
+            // Low Stock Alert
+            if (updatedStock <= 5 && updatedStock > 0) {
+                try {
+                    emailService.sendLowStockAlert(product.getName(), updatedStock);
+                } catch (Exception e) {
+                    System.err.println("Failed to send stock alert: " + e.getMessage());
+                }
+            }
+        });
+    }
+
     @Transactional
     public void markOrderAsPaid(String providerOrderId) {
         Order order = orderRepository.findByProviderOrderId(providerOrderId)
@@ -47,39 +93,9 @@ public class OrderService {
         orderRepository.save(order);
     }
 
-    private void deductStock(Order order) {
-        if (order.getItems() != null) {
-            order.getItems().forEach(item -> {
-                Product product = productRepository.findById(item.getProductId())
-                        .orElseThrow(() -> new RuntimeException("Product not found ID: " + item.getProductId()));
-
-                // Here you could add logic to check stock/inventory in the future
-
-                if (product.getStock() != null) {
-                    if (product.getStock() < item.getQuantity()) {
-                        throw new RuntimeException("Insufficient stock for product: " + product.getName());
-                    }
-
-                    int updatedStock = product.getStock() - item.getQuantity();
-                    product.setStock(updatedStock);
-                    productRepository.save(product);
-
-                    // Low Stock Alert Trigger
-                    if (updatedStock <= 5 && updatedStock > 0) {
-                        try {
-                            emailService.sendLowStockAlert(product.getName(), updatedStock);
-                        } catch (Exception e) {
-                            System.err.println("Failed to send stock alert email: " + e.getMessage());
-                        }
-                    }
-                }
-            });
-        }
-    }
-
     public void processOrderAfterPayment(String orderId) {
         this.markOrderAsPaid(orderId);
-        System.out.println("Inventory check placeholder triggered for Order: " + orderId);
+        System.out.println("Payment processed and order status updated for: " + orderId);
     }
 
     public List<Order> getAllOrders() {
@@ -89,7 +105,6 @@ public class OrderService {
     public Order updateStatus(Long id, String status) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-
         order.setStatus(status);
         return orderRepository.save(order);
     }

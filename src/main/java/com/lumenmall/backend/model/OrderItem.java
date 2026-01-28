@@ -12,6 +12,13 @@ public class OrderItem {
     private Long id;
 
     private Long productId;
+
+    @Column(length = 500)
+    private String productName;
+
+    @Column(columnDefinition = "TEXT")
+    private String imageUrl;
+
     private Integer quantity;
     private Double price;
 }
