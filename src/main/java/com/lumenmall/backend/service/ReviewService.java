@@ -2,6 +2,7 @@ package com.lumenmall.backend.service;
 
 import com.lumenmall.backend.model.Review;
 import com.lumenmall.backend.model.Order;
+import com.lumenmall.backend.repository.ProductRepository;
 import com.lumenmall.backend.repository.ReviewRepository;
 import com.lumenmall.backend.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,10 +16,23 @@ public class ReviewService {
     private ReviewRepository reviewRepository; // 2. Inject it here
 
     public List<Review> getAllReviews() {
-        return reviewRepository.findAll(); // 3. Now this will work!
+        List<Review> reviews = reviewRepository.findAll();
+
+        // Fill in the product name for each review
+        for (Review review : reviews) {
+            if (review.getProductId() != null) {
+                productRepository.findById(Long.parseLong(review.getProductId()))
+                        .ifPresent(product -> review.setProductName(product.getName()));
+            }
+        }
+        return reviews;
     }
+
     @Autowired
     private OrderRepository orderRepository; // Injected to check purchase history
+
+    @Autowired
+    private ProductRepository productRepository; // You'll need this to get names
 
     public List<Review> getReviewsByProduct(Long productId) {
         return reviewRepository.findByProductId(productId);
