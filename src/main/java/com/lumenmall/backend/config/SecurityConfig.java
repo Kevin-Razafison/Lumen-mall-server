@@ -52,6 +52,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
 
                         // --- REVIEWS & COMMENTS ---
+                        .requestMatchers(HttpMethod.GET, "/api/reviews/all").hasRole("ADMIN") // Add this
+                        .requestMatchers(HttpMethod.DELETE, "/api/reviews/**").hasRole("ADMIN") // Add this
+                        
+                        .requestMatchers(HttpMethod.GET, "/api/reviews/product/**").permitAll()
                         // Allow everyone to SEE reviews (Fixes the 403 error)
                         .requestMatchers(HttpMethod.GET, "/api/reviews/product/**").permitAll()
                         // Require login to POST a review or comment
@@ -64,6 +68,7 @@ public class SecurityConfig {
                         // Order Management (Admin Only)
                         .requestMatchers("/api/orders/all").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/orders/*/status").hasRole("ADMIN")
+
 
                         // Fallback
                         .anyRequest().authenticated()

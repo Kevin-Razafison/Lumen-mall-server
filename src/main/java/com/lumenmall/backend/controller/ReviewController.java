@@ -44,4 +44,9 @@ public class ReviewController {
         Long orderId = reviewService.getValidOrderIdForReview(userDetails.getUsername(), productId);
         return ResponseEntity.ok(orderId);
     }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<Review>> getAllReviews() {
+        return ResponseEntity.ok(reviewService.getAllReviews()); // Ensure this method exists in your ReviewService
+    }
 }

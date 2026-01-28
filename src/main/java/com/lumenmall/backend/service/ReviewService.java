@@ -12,8 +12,11 @@ import java.util.List;
 public class ReviewService {
 
     @Autowired
-    private ReviewRepository reviewRepository;
+    private ReviewRepository reviewRepository; // 2. Inject it here
 
+    public List<Review> getAllReviews() {
+        return reviewRepository.findAll(); // 3. Now this will work!
+    }
     @Autowired
     private OrderRepository orderRepository; // Injected to check purchase history
 
