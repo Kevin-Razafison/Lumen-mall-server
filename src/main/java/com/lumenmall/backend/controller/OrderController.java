@@ -17,10 +17,16 @@ public class OrderController {
     private OrderService orderService;
 
     @PostMapping
-    public Order createOrder(@RequestBody Order order) {
-        return orderService.placeOrder(order);
-    }
+    public ResponseEntity<?> createOrder(@RequestBody Order order) {
+        try {
+            Order savedOrder = orderService.placeOrder(order);
+            return ResponseEntity.ok(savedOrder);
+        } catch (Exception e) {
+            System.err.println("CRITICAL ORDER ERROR: " + e.getMessage());
 
+            return ResponseEntity.status(400).body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
     @GetMapping("/all")
     public ResponseEntity<List<Order>> getAllOrders() {
 

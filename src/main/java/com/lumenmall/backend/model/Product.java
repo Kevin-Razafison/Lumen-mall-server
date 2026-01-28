@@ -2,6 +2,8 @@ package com.lumenmall.backend.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -30,4 +32,14 @@ public class Product {
     private String imageUrl;
 
     private Integer stock;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
+
+    private Double salePrice;
 }

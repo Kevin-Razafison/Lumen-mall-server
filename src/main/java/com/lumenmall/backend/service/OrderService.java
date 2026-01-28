@@ -18,9 +18,11 @@ public class OrderService {
     @Autowired
     private ProductRepository productRepository;
 
+    @Autowired
+    private EmailService emailService;
+
     @Transactional
     public Order placeOrder(Order order) {
-        // Logic to check stock/inventory [cite: 2026-01-25]
         deductStock(order);
 
         if ("Bank Transfer".equals(order.getPaymentMethod())) {
@@ -44,24 +46,38 @@ public class OrderService {
         order.setStatus("PAID");
         orderRepository.save(order);
     }
+
     private void deductStock(Order order) {
         if (order.getItems() != null) {
             order.getItems().forEach(item -> {
                 Product product = productRepository.findById(item.getProductId())
                         .orElseThrow(() -> new RuntimeException("Product not found ID: " + item.getProductId()));
 
+                // Here you could add logic to check stock/inventory in the future
+
                 if (product.getStock() != null) {
+                    if (product.getStock() < item.getQuantity()) {
+                        throw new RuntimeException("Insufficient stock for product: " + product.getName());
+                    }
+
                     int updatedStock = product.getStock() - item.getQuantity();
-                    product.setStock(Math.max(updatedStock, 0)); // Prevent negative stock
+                    product.setStock(updatedStock);
                     productRepository.save(product);
+
+                    // Low Stock Alert Trigger
+                    if (updatedStock <= 5 && updatedStock > 0) {
+                        try {
+                            emailService.sendLowStockAlert(product.getName(), updatedStock);
+                        } catch (Exception e) {
+                            System.err.println("Failed to send stock alert email: " + e.getMessage());
+                        }
+                    }
                 }
             });
         }
     }
 
-
     public void processOrderAfterPayment(String orderId) {
-
         this.markOrderAsPaid(orderId);
         System.out.println("Inventory check placeholder triggered for Order: " + orderId);
     }
@@ -77,8 +93,8 @@ public class OrderService {
         order.setStatus(status);
         return orderRepository.save(order);
     }
+
     public List<Order> getOrdersByCustomerEmail(String email) {
         return orderRepository.findByCustomerEmail(email);
     }
-
 }
