@@ -18,13 +18,12 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import com.lumenmall.backend.security.JwtAuthenticationFilter;
 
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     @Autowired
-    private JwtAuthenticationFilter jwtFilter; // We will inject the filter here
+    private JwtAuthenticationFilter jwtFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -38,22 +37,42 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Product Management (Admin Only)
                         .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
+
+                        // User Profile
                         .requestMatchers(HttpMethod.PUT, "/api/users/profile/update").authenticated()
+
+                        // Public Auth Routes
                         .requestMatchers("/api/users/register", "/api/users/login").permitAll()
+
+                        // Public Product Reading
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+
+                        // --- REVIEWS & COMMENTS ---
+                        // Allow everyone to SEE reviews (Fixes the 403 error)
+                        .requestMatchers(HttpMethod.GET, "/api/reviews/product/**").permitAll()
+                        // Require login to POST a review or comment
+                        .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
+
+                        // Payments & Orders
                         .requestMatchers("/api/payments/**").permitAll()
                         .requestMatchers("/api/orders/**").permitAll()
+
+                        // Order Management (Admin Only)
                         .requestMatchers("/api/orders/all").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/orders/*/status").hasRole("ADMIN")
+
+                        // Fallback
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
+
     @Bean
     public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
