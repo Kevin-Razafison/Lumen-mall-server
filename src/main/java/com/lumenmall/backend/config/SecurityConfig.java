@@ -37,40 +37,38 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Product Management (Admin Only)
+                        // --- ADDED: CORS PRE-FLIGHT (Must be at the very top) ---
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // 1. PUBLIC AUTH ROUTES
+                        // Added wildcard /** to ensure sub-paths and slashes don't 403
+                        .requestMatchers("/api/users/register/**",
+                                "/api/users/login/**",
+                                "/api/users/verify/**",
+                                "/api/users/resend-verification/**").permitAll()
+
+                        // 2. PRODUCT & REVIEW PUBLIC ACCESS
+                        .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/reviews/product/**").permitAll()
+
+                        // 3. ADMIN ONLY ROUTES
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
-
-                        // User Profile
-                        .requestMatchers(HttpMethod.PUT, "/api/users/profile/update").authenticated()
-
-                        // Public Auth Routes
-                        .requestMatchers("/api/users/register", "/api/users/login").permitAll()
-
-                        // Public Product Reading
-                        .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
-
-                        // --- REVIEWS & COMMENTS ---
-                        .requestMatchers(HttpMethod.GET, "/api/reviews/all").hasRole("ADMIN") // Add this
-                        .requestMatchers(HttpMethod.DELETE, "/api/reviews/**").hasRole("ADMIN") // Add this
-                        
-                        .requestMatchers(HttpMethod.GET, "/api/reviews/product/**").permitAll()
-                        // Allow everyone to SEE reviews (Fixes the 403 error)
-                        .requestMatchers(HttpMethod.GET, "/api/reviews/product/**").permitAll()
-                        // Require login to POST a review or comment
-                        .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
-
-                        // Payments & Orders
-                        .requestMatchers("/api/payments/**").permitAll()
-                        .requestMatchers("/api/orders/**").permitAll()
-
-                        // Order Management (Admin Only)
                         .requestMatchers("/api/orders/all").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/orders/*/status").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/reviews/all").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/reviews/**").hasRole("ADMIN")
 
+                        // 4. AUTHENTICATED USER ROUTES
+                        .requestMatchers(HttpMethod.PUT, "/api/users/profile/update").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
+                        .requestMatchers("/api/orders/**").authenticated()
 
-                        // Fallback
+                        // 5. PAYMENTS
+                        .requestMatchers("/api/payments/**").permitAll()
+
+                        // 6. FINAL FALLBACK
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
@@ -84,12 +82,14 @@ public class SecurityConfig {
 
         configuration.setAllowedOrigins(java.util.List.of(
                 "http://localhost:5173",
-                "https://lumen-mall-client.onrender.com" // Existing
+                "https://lumen-mall-client.onrender.com"
         ));
 
-        configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type"));
+        // Added "PATCH" to methods and extra Headers to ensure the browser handshake works on port 9090
+        configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "Origin"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L); // Cache CORS pre-flight for 1 hour
 
         org.springframework.web.cors.UrlBasedCorsConfigurationSource source = new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

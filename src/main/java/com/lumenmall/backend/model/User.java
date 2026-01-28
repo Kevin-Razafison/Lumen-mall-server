@@ -26,4 +26,7 @@ public class User {
     @Column(columnDefinition = "TEXT")
     private String imageUrl;
 
+    private String verificationToken;
+    private boolean enabled = false; // Users start as "disabled"
+
 }

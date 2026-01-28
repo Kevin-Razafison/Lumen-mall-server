@@ -2,9 +2,11 @@ package com.lumenmall.backend.controller;
 
 import com.lumenmall.backend.model.User;
 import com.lumenmall.backend.repository.UserRepository;
+import com.lumenmall.backend.service.EmailService;
 import com.lumenmall.backend.service.UserService;
 import com.lumenmall.backend.security.JwtUtils; // Ensure this matches your package
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -33,17 +35,8 @@ public class UserController {
         return ResponseEntity.ok(userService.findAllUsers());
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody User user) {
-        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Email already in use!"));
-        }
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setRole("USER");
-
-        userRepository.save(user);
-        return ResponseEntity.ok(Map.of("message", "User registered successfully!"));
-    }
+    @Autowired
+    private EmailService emailService;
 
     @PutMapping("/{id}/role")
     public ResponseEntity<?> updateRole(@PathVariable Long id, @RequestBody String newRole) {
@@ -66,8 +59,14 @@ public class UserController {
 
         return userRepository.findByEmail(email)
                 .map(user -> {
+                    // 1. CHECK IF VERIFIED (THE BOUNCER)
+                    if (!user.isEnabled()) {
+                        return ResponseEntity.status(401)
+                                .body(Map.of("message", "Please verify your email first!"));
+                    }
+
+                    // 2. CHECK PASSWORD
                     if (passwordEncoder.matches(password, user.getPassword())) {
-                        // Correctly passes two arguments: email and role
                         String token = jwtUtils.generateToken(user.getEmail(), user.getRole());
 
                         return ResponseEntity.ok(Map.of(
@@ -83,7 +82,55 @@ public class UserController {
                 })
                 .orElse(ResponseEntity.status(401).body(Map.of("message", "Invalid credentials")));
     }
+    @GetMapping("/verify")
+    public ResponseEntity<?> verifyUser(@RequestParam("token") String token) {
+        boolean verified = userService.verifyToken(token);
+        if (verified) {
+            return ResponseEntity.ok("Verified");
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid Token");
+    }
+    @PostMapping("/register")
+    public ResponseEntity<?> registerUser(@RequestBody User user) {
+        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email already in use!"));
+        }
 
+        // Setup User
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setRole("USER");
+        user.setEnabled(false); // New: account starts as inactive
+
+        // Generate Token
+        String token = java.util.UUID.randomUUID().toString();
+        user.setVerificationToken(token);
+
+        userRepository.save(user);
+
+        emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), token);
+
+        return ResponseEntity.ok(Map.of("message", "Registration successful! Please check your email."));
+    }
+    @PostMapping("/resend-verification")
+    public ResponseEntity<?> resendVerification(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        return userRepository.findByEmail(email).map(user -> {
+            if (user.isEnabled()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Account is already verified."));
+            }
+
+            // Use existing token or generate a fresh one
+            String token = user.getVerificationToken();
+            if (token == null) {
+                token = java.util.UUID.randomUUID().toString();
+                user.setVerificationToken(token);
+                userRepository.save(user);
+            }
+
+            emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), token);
+            return ResponseEntity.ok(Map.of("message", "Verification email resent!"));
+        }).orElse(ResponseEntity.status(404).body(Map.of("message", "User not found.")));
+    }
     @PutMapping("/profile/update")
     public ResponseEntity<?> updateProfile(@RequestBody Map<String, String> data, @RequestHeader("Authorization") String auth) {
         String currentEmail = jwtUtils.extractUsername(auth.substring(7));

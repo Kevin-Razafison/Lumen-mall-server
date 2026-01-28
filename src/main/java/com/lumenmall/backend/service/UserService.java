@@ -5,6 +5,7 @@ import com.lumenmall.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class UserService {
@@ -39,5 +40,18 @@ public class UserService {
         user.setImageUrl(newImage);
 
         return userRepository.save(user);
+    }
+
+    public boolean verifyToken(String token) {
+        Optional<User> userOptional = userRepository.findByVerificationToken(token);
+
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            user.setEnabled(true);
+            user.setVerificationToken(null); // Clear the token so it can't be used twice
+            userRepository.save(user);
+            return true;
+        }
+        return false;
     }
 }

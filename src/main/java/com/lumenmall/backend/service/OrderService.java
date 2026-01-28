@@ -5,8 +5,10 @@ import com.lumenmall.backend.model.Order;
 import com.lumenmall.backend.repository.OrderRepository;
 import com.lumenmall.backend.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 
 @Service
@@ -110,6 +112,8 @@ public class OrderService {
         order.setStatus(status);
         return orderRepository.save(order);
     }
+
+
 
     public List<Order> getOrdersByCustomerEmail(String email) {
         return orderRepository.findByCustomerEmail(email);
