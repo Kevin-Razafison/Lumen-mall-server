@@ -96,20 +96,26 @@ public class UserController {
             return ResponseEntity.badRequest().body(Map.of("message", "Email already in use!"));
         }
 
-        // Setup User
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setRole("USER");
-        user.setEnabled(false); // New: account starts as inactive
+        user.setRole("ROLE_USER"); // Using full spring role name
+        user.setEnabled(false);
 
-        // Generate Token
         String token = java.util.UUID.randomUUID().toString();
         user.setVerificationToken(token);
 
+        // SAVE FIRST
         userRepository.save(user);
 
-        emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), token);
-
-        return ResponseEntity.ok(Map.of("message", "Registration successful! Please check your email."));
+        // TRY EMAIL SECOND
+        try {
+            emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), token);
+            return ResponseEntity.ok(Map.of("message", "Registration successful! Please check your email."));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                    "message", "Account created, but we couldn't send the verification email. Please try 'Resend' later.",
+                    "error", "SMTP/API Timeout"
+            ));
+        }
     }
     @PostMapping("/resend-verification")
     public ResponseEntity<?> resendVerification(@RequestBody Map<String, String> request) {
