@@ -59,11 +59,11 @@ public class UserController {
 
         return userRepository.findByEmail(email)
                 .map(user -> {
-                    // 1. CHECK IF VERIFIED (THE BOUNCER)
+                    /*// 1. CHECK IF VERIFIED (THE BOUNCER)
                     if (!user.isEnabled()) {
                         return ResponseEntity.status(401)
                                 .body(Map.of("message", "Please verify your email first!"));
-                    }
+                    }*/
 
                     // 2. CHECK PASSWORD
                     if (passwordEncoder.matches(password, user.getPassword())) {
@@ -97,25 +97,24 @@ public class UserController {
         }
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setRole("ROLE_USER"); // Using full spring role name
-        user.setEnabled(false);
+        user.setRole("ROLE_USER");
+
+        // --- THE TRICK ---
+        user.setEnabled(true); // Automatically verify everyone for now
+        // -----------------
 
         String token = java.util.UUID.randomUUID().toString();
         user.setVerificationToken(token);
-
-        // SAVE FIRST
         userRepository.save(user);
 
-        // TRY EMAIL SECOND
+        // We keep this in a try-catch so the app doesn't crash if Resend fails
         try {
             emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), token);
-            return ResponseEntity.ok(Map.of("message", "Registration successful! Please check your email."));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                    "message", "Account created, but we couldn't send the verification email. Please try 'Resend' later.",
-                    "error", "SMTP/API Timeout"
-            ));
+            System.out.println("Email skipped: Developer mode / No domain.");
         }
+
+        return ResponseEntity.ok(Map.of("message", "Registration successful! (Auto-verified for testing)"));
     }
     @PostMapping("/resend-verification")
     public ResponseEntity<?> resendVerification(@RequestBody Map<String, String> request) {
