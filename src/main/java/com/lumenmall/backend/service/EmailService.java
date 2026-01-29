@@ -35,4 +35,22 @@ public class EmailService {
             throw new RuntimeException("Failed to send email via Resend");
         }
     }
+    public void sendLowStockAlert(String productName, int currentStock) {
+        Resend resend = new Resend(resendApiKey);
+
+        CreateEmailOptions params = CreateEmailOptions.builder()
+                .from("Lumen Mall <onboarding@resend.dev>")
+                .to("angelarknarem@gmail.com") // Your admin email
+                .subject("⚠️ Low Stock Alert: " + productName)
+                .html("<strong>Inventory Warning</strong>" +
+                        "<p>The product <strong>" + productName + "</strong> is running low.</p>" +
+                        "<p>Current quantity: <strong>" + currentStock + "</strong></p>")
+                .build();
+
+        try {
+            resend.emails().send(params);
+        } catch (Exception e) {
+            System.err.println("Failed to send stock alert: " + e.getMessage());
+        }
+    }
 }
