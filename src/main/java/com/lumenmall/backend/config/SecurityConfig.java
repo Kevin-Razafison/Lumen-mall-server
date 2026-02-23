@@ -37,11 +37,10 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // --- ADDED: CORS PRE-FLIGHT (Must be at the very top) ---
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // 1. PUBLIC AUTH ROUTES
-                        // Added wildcard /** to ensure sub-paths and slashes don't 403
+                        .requestMatchers("/api/users/login", "/api/users/login/**").permitAll()
+                        .requestMatchers("/api/users/register", "/api/users/register/**").permitAll()
                         .requestMatchers("/api/users/register/**",
                                 "/api/users/login/**",
                                 "/api/users/verify/**",

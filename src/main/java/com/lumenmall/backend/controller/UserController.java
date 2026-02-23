@@ -28,7 +28,7 @@ public class UserController {
     private UserService userService;
 
     @Autowired
-    private JwtUtils jwtUtils; // Moved inside the class!
+    private JwtUtils jwtUtils;
 
     @GetMapping("/all")
     public ResponseEntity<List<User>> getAllUsers() {

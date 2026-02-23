@@ -11,7 +11,7 @@ public class JwtUtils {
     private final String jwtSecret = "your-very-long-and-secure-secret-key-that-is-at-least-32-chars";
     private final int jwtExpirationMs = 86400000; // 24 hours
 
-    // This is your 'SECRET_KEY'
+    // This is the 'SECRET_KEY'
     private final Key key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
 
     public String generateToken(String email, String role) {

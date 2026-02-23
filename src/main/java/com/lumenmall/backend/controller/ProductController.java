@@ -54,7 +54,6 @@ public class ProductController {
         }
     }
 
-    // Add this to your ProductController.java
     @PostMapping
     public ResponseEntity<Product> createProduct(@RequestBody Product product) {
         Product savedProduct = productService.saveProduct(product);

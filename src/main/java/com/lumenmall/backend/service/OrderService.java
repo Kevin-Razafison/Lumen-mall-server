@@ -25,7 +25,6 @@ public class OrderService {
 
     @Transactional
     public Order placeOrder(Order order) {
-        // Here you could add logic to check stock/inventory in the future
 
         // 1. VALIDATE: Look before you leap
         validateStock(order);
